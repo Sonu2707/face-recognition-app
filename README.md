@@ -2,20 +2,14 @@
 
 A powerful Streamlit-based face recognition and analysis application using DeepFace library.
 
-## Features
+## Key Improvements
 
-- Upload multiple images (JPG, PNG)
-- Set any image as reference for comparison
-- Analyze facial attributes:
-  - Age estimation
-  - Gender prediction
-  - Emotion detection (7 emotions)
-  - Race/ethnicity classification
-- Face verification against reference image
-- Visualize emotion distribution
-- Generate comprehensive PDF report
-- Reverse image search links (Google, Bing)
-- Responsive gallery view
+- Fixed TensorFlow compatibility issues
+- Optimized memory usage
+- Added proper cleanup of temporary files
+- Improved error handling
+- Pre-load models option
+- Better resource management for Streamlit Cloud
 
 ## Installation
 
