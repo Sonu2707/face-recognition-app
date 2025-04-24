@@ -1,14 +1,17 @@
-# app.py
 import streamlit as st
 from PIL import Image
 import tempfile
 import os
-from deepface import DeepFace
 from fpdf import FPDF
 
 st.set_page_config(page_title="AI Face Recognition & Insight App", layout="wide")
 st.title("AI Face Recognition & Insight App")
 st.markdown("Upload multiple face images to analyze attributes, compare identities, and download a full report.")
+
+# Safe import for DeepFace (runtime only)
+def get_deepface():
+    from deepface import DeepFace
+    return DeepFace
 
 # Save uploaded image
 def save_image(uploaded_file):
@@ -65,6 +68,7 @@ if uploaded_images and len(uploaded_images) >= 2:
     if st.button("Analyze & Compare All"):
         with st.spinner("Analyzing images and comparing faces..."):
             try:
+                DeepFace = get_deepface()
                 for path in image_paths:
                     analysis = DeepFace.analyze(img_path=path, actions=['age', 'gender', 'emotion', 'race'], enforce_detection=False)
                     analysis_data.append(analysis[0])
