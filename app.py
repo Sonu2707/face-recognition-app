@@ -1,4 +1,4 @@
-# face_app.py
+# app.py
 import streamlit as st
 from PIL import Image
 import tempfile
@@ -20,7 +20,7 @@ def reverse_image_search_links():
     st.markdown("[Google Images](https://images.google.com)")
     st.markdown("[Bing Visual Search](https://www.bing.com/visualsearch)")
 
-# Image Upload Section
+# Upload section
 st.sidebar.header("Upload Images")
 uploaded_image1 = st.sidebar.file_uploader("Upload First Image", type=["jpg", "jpeg", "png"])
 uploaded_image2 = st.sidebar.file_uploader("Upload Second Image", type=["jpg", "jpeg", "png"])
@@ -30,11 +30,12 @@ image1_path = image2_path = None
 if uploaded_image1:
     st.image(uploaded_image1, caption="Image 1", width=250)
     image1_path = save_image(uploaded_image1)
+
 if uploaded_image2:
     st.image(uploaded_image2, caption="Image 2", width=250)
     image2_path = save_image(uploaded_image2)
 
-# Analyze and Compare Faces
+# DeepFace analysis and comparison
 if st.button("Analyze & Compare"):
     if image1_path and image2_path:
         with st.spinner("Analyzing..."):
