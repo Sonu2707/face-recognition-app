@@ -5,8 +5,9 @@ import tempfile
 import os
 
 st.set_page_config(page_title="Face Recognition & Analysis App", layout="centered")
+st.set_option("server.maxUploadSize", 50)
 st.title("Face Recognition & Analysis App")
-st.markdown("Upload two face images to analyze and compare facial attributes.")
+st.markdown("Upload two face images to analyze facial attributes and compare them.")
 
 # Save uploaded image
 def save_image(uploaded_file):
@@ -27,10 +28,12 @@ uploaded_image2 = st.sidebar.file_uploader("Upload Second Image", type=["jpg", "
 
 image1_path = image2_path = None
 
-if uploaded_image1 and uploaded_image2:
+if uploaded_image1:
+    st.image(uploaded_image1, caption="Image 1", width=250)
     image1_path = save_image(uploaded_image1)
+if uploaded_image2:
+    st.image(uploaded_image2, caption="Image 2", width=250)
     image2_path = save_image(uploaded_image2)
-    st.image([uploaded_image1, uploaded_image2], caption=["Image 1", "Image 2"], width=250)
 
 # Analyze and Compare Faces
 if st.button("Analyze & Compare"):
@@ -53,4 +56,5 @@ if st.button("Analyze & Compare"):
             except Exception as e:
                 st.error(f"An error occurred: {e}")
     else:
-        st.warning("Please provide both images for analysis.")
+        st.warning("Please upload both images before running analysis.")
+        
