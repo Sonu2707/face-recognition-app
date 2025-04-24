@@ -5,7 +5,6 @@ import tempfile
 import os
 
 st.set_page_config(page_title="Face Recognition & Analysis App", layout="centered")
-st.set_option("server.maxUploadSize", 50)
 st.title("Face Recognition & Analysis App")
 st.markdown("Upload two face images to analyze facial attributes and compare them.")
 
@@ -57,4 +56,3 @@ if st.button("Analyze & Compare"):
                 st.error(f"An error occurred: {e}")
     else:
         st.warning("Please upload both images before running analysis.")
-        
