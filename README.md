@@ -1,15 +1,23 @@
-# Face Recognition & Analysis App
+# AI Face Recognition & Insight App
 
-A Streamlit web app using DeepFace for facial analysis and verification.
+A powerful Streamlit-based face recognition and analysis app using DeepFace.
 
 ## Features
-- Upload or capture face images
-- Analyze age, gender, emotion, and race
-- Compare two faces for similarity
-- Links to Google and Bing reverse image search
 
-## Setup
+- Upload multiple images (up to 10)
+- Select one as a reference to compare others against
+- Analyze facial attributes:
+  - Age
+  - Gender
+  - Emotion
+  - Race/Ethnicity
+- Display image gallery of all uploads
+- Download a PDF report summarizing all analysis and comparisons
+- Direct links for reverse image search on Google and Bing
 
+## Installation
+
+1. Clone this repository:
 ```bash
-pip install -r requirements.txt
-streamlit run face_app.py
+git clone https://github.com/yourusername/face-recognition-app.git
+cd face-recognition-app
