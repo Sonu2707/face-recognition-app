@@ -40,7 +40,7 @@ if 'imgbb_urls' not in st.session_state:
 if 'location_info' not in st.session_state:
     st.session_state.location_info = {}
 
-# Custom CSS
+# Custom CSS for styling
 st.markdown("""
 <style>
     .stFileUploader, .stImage, .stPlotlyChart {
@@ -72,7 +72,7 @@ with st.sidebar:
             st.session_state.location_info = {}
             st.experimental_rerun()
 
-# Test Plotly chart
+# Test Plotly chart to verify rendering
 st.subheader("Test Chart")
 test_fig = go.Figure(data=[go.Pie(labels=['A', 'B'], values=[30, 70])])
 test_fig.update_layout(title="Test Pie Chart", margin=dict(t=40, b=0, l=0, r=0))
@@ -108,7 +108,7 @@ def extract_exif_data(image):
 # Function for Google Cloud Vision analysis
 def google_vision_analysis(img_bytes):
     if not vision_client:
-        return {"landmarks": [], "objects": []}
+        return {"landmarks": [], "objects": [], "labels": []}
     try:
         image = vision.Image(content=img_bytes)
         # Landmark detection
@@ -117,7 +117,7 @@ def google_vision_analysis(img_bytes):
         # Object detection
         response = vision_client.object_localization(image=image)
         objects = [obj.name for obj in response.localized_object_annotations]
-        # Label detection (for additional context)
+        # Label detection
         response = vision_client.label_detection(image=image)
         labels = [label.description for label in response.label_annotations]
         return {"landmarks": landmarks, "objects": objects, "labels": labels}
@@ -163,6 +163,7 @@ if new_files:
                 api_key = st.secrets.get("IMGBB_API_KEY", None)
                 if not api_key:
                     st.error("ImgBB API key not set. Reverse image search will be limited.")
+                    st.session_state.debug_info.append("ImgBB API key not found in secrets.")
                 else:
                     url = "https://api.imgbb.com/1/upload"
                     payload = {"key": api_key, "image": base64.b64encode(img_bytes).decode()}
