@@ -6,24 +6,25 @@ import os
 
 st.set_page_config(page_title="Face Recognition & Analysis App", layout="centered")
 st.title("Face Recognition & Analysis App")
-st.markdown("Upload images or use your webcam to analyze and compare faces.")
+st.markdown("Upload or capture images to analyze facial attributes and compare faces.")
 
-# Function to save uploaded or captured image
+# Save uploaded or captured image
 def save_image(uploaded_file):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
         tmp_file.write(uploaded_file.read())
         return tmp_file.name
 
-# Function to display reverse image search links
-def reverse_image_search_links(image_path):
+# Display reverse image search links
+def reverse_image_search_links():
     st.subheader("Reverse Image Search")
-    st.markdown("You can use the following links to perform a manual reverse image search:")
     st.markdown("[Google Images](https://images.google.com)")
     st.markdown("[Bing Visual Search](https://www.bing.com/visualsearch)")
 
 # Image Upload or Capture
-st.sidebar.header("Image Inputs")
+st.sidebar.header("Input Images")
 input_method = st.sidebar.radio("Select Image Input Method:", ("Upload Images", "Use Webcam"))
+
+image1_path = image2_path = None
 
 if input_method == "Upload Images":
     uploaded_image1 = st.sidebar.file_uploader("Upload First Image", type=["jpg", "jpeg", "png"])
@@ -42,7 +43,7 @@ elif input_method == "Use Webcam":
 
 # Analyze and Compare Faces
 if st.button("Analyze & Compare"):
-    if 'image1_path' in locals() and 'image2_path' in locals():
+    if image1_path and image2_path:
         with st.spinner("Analyzing..."):
             try:
                 analysis = DeepFace.analyze(img_path=image1_path, actions=['age', 'gender', 'emotion', 'race'])
@@ -51,11 +52,11 @@ if st.button("Analyze & Compare"):
                 st.subheader("Image 1 Analysis")
                 st.json(analysis[0])
 
-                st.subheader("Face Comparison Result")
-                st.write("Are they the same person?:", verification['verified'])
-                st.write("Similarity Score (lower means more similar):", verification['distance'])
+                st.subheader("Comparison Result")
+                st.write("Same person?", verification['verified'])
+                st.write("Similarity Score:", verification['distance'])
 
-                reverse_image_search_links(image1_path)
+                reverse_image_search_links()
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
