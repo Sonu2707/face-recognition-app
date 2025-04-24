@@ -1,12 +1,14 @@
-# Face Recognition App
+# Enhanced Face Recognition App
 
-A web-based face recognition application built with Streamlit, OpenCV, and the `face_recognition` library. Users can upload images or use a webcam to detect and recognize faces against a database of known faces.
+A real-time face recognition application built with Streamlit, OpenCV, and `face_recognition`. Supports image/video uploads, webcam streaming, dynamic face database updates, and recognition history logging. Optimized for deployment on Streamlit Community Cloud with Python 3.10.17.
 
 ## Features
-- Upload images to detect and recognize faces.
-- Real-time face recognition using a webcam.
-- Add known faces via the sidebar with names and images.
-- Displays bounding boxes and names around recognized faces.
+- Real-time face recognition via webcam with frame skipping for performance.
+- Upload images or videos for face detection and recognition.
+- Dynamic face database with SQLite storage for known faces.
+- Recognition history with timestamps and confidence scores, exportable as CSV.
+- Logging for debugging and monitoring.
+- Optimized UI with progress indicators and error handling.
 
 ## Installation
 1. Clone the repository:
