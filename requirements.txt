@@ -1,6 +1,6 @@
 streamlit
 deepface==0.0.79
 tensorflow==2.16.1
-keras==2.16.0
+keras==3.2.1
 opencv-python-headless
 pillow
