@@ -4,22 +4,27 @@ import tempfile
 import os
 from fpdf import FPDF
 
-st.set_page_config(page_title="AI Face Recognition & Insight App", layout="wide")
-st.title("AI Face Recognition & Insight App")
-st.markdown("Upload multiple face images to analyze attributes, compare identities, and download a full report.")
-
-# Safe import for DeepFace (runtime only)
 def get_deepface():
     from deepface import DeepFace
     return DeepFace
 
-# Save uploaded image
+st.set_page_config(page_title="AI Face Recognition & Insight App", layout="wide")
+st.title("AI Face Recognition & Insight App")
+st.markdown("Upload multiple face images to analyze attributes, compare identities, and download a full report.")
+
 def save_image(uploaded_file):
+    try:
+        img = Image.open(uploaded_file)
+        img.verify()
+        uploaded_file.seek(0)
+    except Exception as e:
+        st.error("Uploaded file is not a valid image.")
+        return None
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
         tmp_file.write(uploaded_file.read())
         return tmp_file.name
 
-# PDF report generation
 def generate_pdf_report(analysis_data, comparisons):
     pdf = FPDF()
     pdf.add_page()
@@ -46,7 +51,6 @@ def generate_pdf_report(analysis_data, comparisons):
     pdf.output(report_path)
     return report_path
 
-# Sidebar upload and reference selection
 st.sidebar.header("Upload Multiple Images")
 uploaded_images = st.sidebar.file_uploader("Upload Images (2 to 10)", accept_multiple_files=True, type=["jpg", "jpeg", "png"])
 
@@ -61,9 +65,10 @@ if uploaded_images and len(uploaded_images) >= 2:
 
     for i, img in enumerate(uploaded_images):
         path = save_image(img)
-        image_paths.append(path)
-        with gallery_cols[i % len(gallery_cols)]:
-            st.image(img, caption=f"Image {i+1}", width=150)
+        if path:
+            image_paths.append(path)
+            with gallery_cols[i % len(gallery_cols)]:
+                st.image(path, caption=f"Image {i+1}", width=150)
 
     if st.button("Analyze & Compare All"):
         with st.spinner("Analyzing images and comparing faces..."):
@@ -100,7 +105,6 @@ if uploaded_images and len(uploaded_images) >= 2:
                     for comp in comparisons:
                         st.write(f"Image {comp['index']} Match: {comp['match']}, Score: {comp['score']:.4f}")
 
-                # Generate and offer PDF download
                 report_path = generate_pdf_report(analysis_data, comparisons)
                 with open(report_path, "rb") as file:
                     st.download_button(
@@ -113,4 +117,5 @@ if uploaded_images and len(uploaded_images) >= 2:
             except Exception as e:
                 st.error(f"An error occurred during analysis: {e}")
 else:
-    st.warning("Please upload at least 2 images to begin analysis.")
+    st.warning("Please upload at least 2 valid images to begin analysis.")
+    
