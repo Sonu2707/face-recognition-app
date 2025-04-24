@@ -1,19 +1,21 @@
 # AI Face Recognition & Insight App
 
-A powerful Streamlit-based face recognition and analysis app using DeepFace.
+A powerful Streamlit-based face recognition and analysis application using DeepFace library.
 
 ## Features
 
-- Upload multiple images (up to 10)
-- Select one as a reference to compare others against
+- Upload multiple images (JPG, PNG)
+- Set any image as reference for comparison
 - Analyze facial attributes:
-  - Age
-  - Gender
-  - Emotion
-  - Race/Ethnicity
-- Display image gallery of all uploads
-- Download a PDF report summarizing all analysis and comparisons
-- Direct links for reverse image search on Google and Bing
+  - Age estimation
+  - Gender prediction
+  - Emotion detection (7 emotions)
+  - Race/ethnicity classification
+- Face verification against reference image
+- Visualize emotion distribution
+- Generate comprehensive PDF report
+- Reverse image search links (Google, Bing)
+- Responsive gallery view
 
 ## Installation
 
