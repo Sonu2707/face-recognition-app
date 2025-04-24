@@ -7,6 +7,10 @@ from fpdf import FPDF
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
+import atexit
+
+# Configure environment variables
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow logs
 
 # App configuration
 st.set_page_config(
@@ -15,6 +19,19 @@ st.set_page_config(
     layout="wide"
 )
 
+# Cleanup function for temp files
+def cleanup():
+    if 'uploaded_images' in st.session_state:
+        for img_data in st.session_state.uploaded_images:
+            if img_data.get('temp_path') and os.path.exists(img_data['temp_path']):
+                try:
+                    os.unlink(img_data['temp_path'])
+                except:
+                    pass
+
+# Register cleanup function
+atexit.register(cleanup)
+
 # Title and description
 st.title("AI Face Recognition & Insight App")
 st.markdown("""
@@ -22,7 +39,7 @@ st.markdown("""
     Select one as reference to compare against others.
 """)
 
-# Initialize session state for uploaded images
+# Initialize session state
 if 'uploaded_images' not in st.session_state:
     st.session_state.uploaded_images = []
 if 'reference_img' not in st.session_state:
@@ -37,6 +54,22 @@ with st.sidebar:
         default=["Age", "Gender"]
     )
     threshold = st.slider("Similarity Threshold", 0.0, 1.0, 0.6, 0.01)
+    
+    # Pre-load models when app starts
+    if st.button("Pre-load Models (Recommended)"):
+        with st.spinner("Loading models..."):
+            try:
+                if "Age" in analysis_options:
+                    DeepFace.build_model("Age")
+                if "Gender" in analysis_options:
+                    DeepFace.build_model("Gender")
+                if "Emotion" in analysis_options:
+                    DeepFace.build_model("Emotion")
+                if "Race" in analysis_options:
+                    DeepFace.build_model("Race")
+                st.success("Models loaded successfully!")
+            except Exception as e:
+                st.error(f"Model loading failed: {str(e)}")
 
 # File uploader - multiple images
 uploaded_files = st.file_uploader(
@@ -52,10 +85,15 @@ if uploaded_files and len(uploaded_files) > 0:
     for uploaded_file in uploaded_files:
         try:
             img = Image.open(uploaded_file)
+            # Convert to RGB if necessary
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+                
             st.session_state.uploaded_images.append({
                 'name': uploaded_file.name,
                 'image': img,
                 'analysis': None,
+                'comparison': None,
                 'temp_path': None
             })
         except Exception as e:
@@ -82,15 +120,30 @@ if st.session_state.reference_img is not None:
 # Analysis and comparison functions
 def analyze_image(img_path, attributes):
     try:
-        analysis = DeepFace.analyze(img_path=img_path, actions=attributes, enforce_detection=True)
+        # Limit the analysis to avoid memory issues
+        analysis = DeepFace.analyze(
+            img_path=img_path,
+            actions=[attr.lower() for attr in attributes],
+            enforce_detection=True,
+            detector_backend='opencv',  # More reliable backend
+            prog_bar=False  # Disable progress bar to reduce logs
+        )
         return analysis[0] if isinstance(analysis, list) else analysis
     except Exception as e:
-        st.error(f"Analysis failed: {str(e)}")
+        st.error(f"Analysis failed for {img_path}: {str(e)}")
         return None
 
 def compare_faces(img1_path, img2_path):
     try:
-        result = DeepFace.verify(img1_path=img1_path, img2_path=img2_path)
+        result = DeepFace.verify(
+            img1_path=img1_path,
+            img2_path=img2_path,
+            detector_backend='opencv',
+            model_name='VGG-Face',  # More efficient model
+            distance_metric='cosine',
+            enforce_detection=True,
+            align=True
+        )
         return result
     except Exception as e:
         st.error(f"Comparison failed: {str(e)}")
@@ -113,10 +166,9 @@ def create_pdf_report(images_data, reference_idx):
         pdf.cell(0, 10, f"Reference Image: {ref_data['name']}", 0, 1)
         
         # Add reference image to PDF
-        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-            ref_data['image'].save(tmp.name, format="JPEG")
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=True) as tmp:
+            ref_data['image'].save(tmp.name, format="JPEG", quality=85)  # Reduced quality for smaller size
             pdf.image(tmp.name, x=10, w=60)
-            os.unlink(tmp.name)
         
         # Add reference analysis
         if ref_data['analysis']:
@@ -144,10 +196,9 @@ def create_pdf_report(images_data, reference_idx):
         pdf.cell(0, 10, f"Image: {img_data['name']}", 0, 1)
         
         # Add image to PDF
-        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-            img_data['image'].save(tmp.name, format="JPEG")
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=True) as tmp:
+            img_data['image'].save(tmp.name, format="JPEG", quality=85)
             pdf.image(tmp.name, x=10, w=60)
-            os.unlink(tmp.name)
         
         # Add comparison results
         if img_data.get('comparison'):
@@ -182,41 +233,41 @@ if st.session_state.uploaded_images and st.button("Run Analysis"):
     
     current_step = 0
     
-    # Analyze all images
-    for idx, img_data in enumerate(st.session_state.uploaded_images):
-        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-            img_data['image'].save(tmp.name, format="JPEG")
-            img_data['temp_path'] = tmp.name
-        
-        analysis = analyze_image(img_data['temp_path'], [opt.lower() for opt in analysis_options])
-        if analysis:
-            st.session_state.uploaded_images[idx]['analysis'] = analysis
-        
-        current_step += 1
-        progress_bar.progress(current_step / total_steps)
-    
-    # Compare with reference if set
-    if st.session_state.reference_img is not None:
-        ref_path = st.session_state.uploaded_images[st.session_state.reference_img]['temp_path']
-        
+    try:
+        # Analyze all images
         for idx, img_data in enumerate(st.session_state.uploaded_images):
-            if idx == st.session_state.reference_img:
-                continue
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                img_data['image'].save(tmp.name, format="JPEG", quality=90)
+                img_data['temp_path'] = tmp.name
             
-            comparison = compare_faces(ref_path, img_data['temp_path'])
-            if comparison:
-                st.session_state.uploaded_images[idx]['comparison'] = comparison
+            analysis = analyze_image(img_data['temp_path'], analysis_options)
+            if analysis:
+                st.session_state.uploaded_images[idx]['analysis'] = analysis
             
             current_step += 1
             progress_bar.progress(current_step / total_steps)
-    
-    # Clean up temp files
-    for img_data in st.session_state.uploaded_images:
-        if img_data['temp_path'] and os.path.exists(img_data['temp_path']):
-            os.unlink(img_data['temp_path'])
-    
-    progress_bar.empty()
-    st.success("Analysis completed!")
+        
+        # Compare with reference if set
+        if st.session_state.reference_img is not None:
+            ref_path = st.session_state.uploaded_images[st.session_state.reference_img]['temp_path']
+            
+            for idx, img_data in enumerate(st.session_state.uploaded_images):
+                if idx == st.session_state.reference_img:
+                    continue
+                
+                comparison = compare_faces(ref_path, img_data['temp_path'])
+                if comparison:
+                    st.session_state.uploaded_images[idx]['comparison'] = comparison
+                
+                current_step += 1
+                progress_bar.progress(current_step / total_steps)
+        
+        st.success("Analysis completed successfully!")
+    except Exception as e:
+        st.error(f"Analysis failed: {str(e)}")
+    finally:
+        cleanup()
+        progress_bar.empty()
 
 # Display results
 if st.session_state.uploaded_images and any(img.get('analysis') for img in st.session_state.uploaded_images):
@@ -261,6 +312,7 @@ if st.session_state.uploaded_images and any(img.get('analysis') for img in st.se
                     ax.bar(analysis['emotion'].keys(), analysis['emotion'].values())
                     ax.set_title("Emotion Distribution")
                     st.pyplot(fig)
+                    plt.close()
                 
                 # Race
                 if 'race' in analysis:
@@ -285,9 +337,14 @@ if st.session_state.uploaded_images and any(img.get('analysis') for img in st.se
 if st.session_state.uploaded_images and any(img.get('analysis') for img in st.session_state.uploaded_images):
     st.header("Report Generation")
     if st.button("Generate PDF Report"):
-        pdf_buffer = create_pdf_report(st.session_state.uploaded_images, st.session_state.reference_img)
-        
-        # Create download link
-        b64 = base64.b64encode(pdf_buffer.read()).decode()
-        href = f'<a href="data:application/octet-stream;base64,{b64}" download="face_analysis_report.pdf">Download PDF Report</a>'
-        st.markdown(href, unsafe_allow_html=True)
+        with st.spinner("Generating PDF..."):
+            try:
+                pdf_buffer = create_pdf_report(st.session_state.uploaded_images, st.session_state.reference_img)
+                
+                # Create download link
+                b64 = base64.b64encode(pdf_buffer.read()).decode()
+                href = f'<a href="data:application/octet-stream;base64,{b64}" download="face_analysis_report.pdf">Download PDF Report</a>'
+                st.markdown(href, unsafe_allow_html=True)
+                st.success("PDF report generated successfully!")
+            except Exception as e:
+                st.error(f"Failed to generate PDF: {str(e)}")
